@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<title>SmartHome Language</title>
+<style>
+  body {
+    font-family: monospace;
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 0 20px;
+    background: #fff;
+    color: #000;
+  }
+
+  h1 { font-size: 18px; margin-bottom: 20px; }
+
+  label { display: block; margin-bottom: 4px; font-size: 13px; }
+
+  textarea {
+    width: 100%;
+    height: 200px;
+    font-family: monospace;
+    font-size: 13px;
+    padding: 8px;
+    border: 1px solid #999;
+    resize: vertical;
+  }
+
+  button {
+    margin-top: 8px;
+    padding: 6px 16px;
+    font-family: monospace;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  hr { margin: 24px 0; border: none; border-top: 1px solid #ccc; }
+
+  pre {
+    font-family: monospace;
+    font-size: 13px;
+    background: #f5f5f5;
+    border: 1px solid #ccc;
+    padding: 10px;
+    white-space: pre-wrap;
+  }
+
+  .error { color: red; }
+</style>
+</head>
+<body>
+
+<h1>SmartHome Language</h1>
+
+<label for="code">Code:</label>
+<textarea id="code" spellcheck="false">
+
+</textarea>
+
+<button onclick="runCode()">Run</button>
+
+<hr>
+
+<div id="output"></div>
+
+<script>
+const API = 'http://localhost:8000';
+
+async function runCode() {
+  const code = document.getElementById('code').value.trim();
+  const output = document.getElementById('output');
+  output.innerHTML = 'Loading...';
+
+  try {
+      const devicesRes = await fetch(`${API}/devices`);
+      const devices = await devicesRes.json();
+
+    const res = await fetch(`${API}/run`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, devices })
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      output.innerHTML = `<p class="error">Error: ${data.error}</p>`;
+      return;
+    }
+
+    let html = '';
+
+    html += '<b>Initial state:</b>\n';
+    html += '<pre>' + formatDevices(devices) + '</pre>';
+
+    html += '<b>Log:</b>\n';
+    html += '<pre>' + data.log.join('\n') + '</pre>';
+
+    html += '<b>Final state:</b>\n';
+    html += '<pre>' + formatDevices(data.devices) + '</pre>';
+
+    output.innerHTML = html;
+  } catch (err) {
+    output.innerHTML = '<p class="error">Cannot connect to the server.</p>';
+  }
+}
+
+function formatDevices(devices) {
+  return Object.entries(devices)
+    .map(([name, props]) => {
+      const p = Object.entries(props).map(([k, v]) => `${k}: ${v}`).join(', ');
+      return `${name}: { ${p} }`;
+    })
+    .join('\n');
+}
+</script>
+</body>
+</html>
