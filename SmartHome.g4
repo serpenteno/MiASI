@@ -8,6 +8,7 @@ program
 
 statement
     : ifStatement
+    | whenStatement
     | forStatement
     | command
     ;
@@ -19,6 +20,10 @@ ifStatement
 
 ifBlock: LBRACE statement+ RBRACE ;
 elseBlock: LBRACE statement+ RBRACE ;
+
+whenStatement
+    : WHEN LPAREN condition RPAREN LBRACE statement+ RBRACE
+    ;
 
 forStatement
     : FOR ID IN roomList LBRACE statement+ RBRACE
@@ -49,6 +54,7 @@ onOff: ON | OFF ;
 
 IF: 'if' ;
 ELSE: 'else' ;
+WHEN : 'when' ;
 FOR: 'for' ;
 IN: 'in' ;
 IS: 'is' ;

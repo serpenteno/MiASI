@@ -8,6 +8,7 @@ class InterpreterVisitor(SmartHomeVisitor):
         self.variables = {}
         self.ignored = set()
         self.log = []
+        self.pending_rules = []
 
     def visitProgram(self, ctx: SmartHomeParser.ProgramContext):
         for statement in ctx.statement():
@@ -31,6 +32,10 @@ class InterpreterVisitor(SmartHomeVisitor):
     def visitElseBlock(self, ctx: SmartHomeParser.ElseBlockContext):
         for statement in ctx.statement():
             self.visit(statement)
+
+    def visitWhenStatement(self, ctx: SmartHomeParser.WhenStatementContext):
+        self.pending_rules.append(ctx)
+        self.log.append(f"rule for '{ctx.condition().getText()}' registered")
 
     def visitForStatement(self, ctx: SmartHomeParser.ForStatementContext):
         name = ctx.ID().getText()
@@ -78,6 +83,12 @@ class InterpreterVisitor(SmartHomeVisitor):
             self.devices[device] = {}
         self.devices[device][prop] = val
         self.log.append(f"{device}.{prop} = {val}")
+
+        for rule in self.pending_rules[:]:
+            if self.visit(rule.condition()):
+                self.pending_rules.remove(rule)
+                for statement in rule.statement():
+                    self.visit(statement)
 
     def visitLightCommand(self, ctx: SmartHomeParser.LightCommandContext):
         device = self._resolve(ctx.device().getText())
