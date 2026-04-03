@@ -60,7 +60,8 @@ class InterpreterVisitor(SmartHomeVisitor):
         number = float(ctx.NUMBER().getText())
         actual = self.devices.get(device, {}).get(prop, 0)
         ops = {'>': actual > number, '>=': actual >= number,
-               '<': actual < number, '<=': actual <= number}
+               '<': actual < number, '<=': actual <= number,
+               '==': actual == number, '!=': actual != number}
         return ops.get(op, False)
 
     def visitSetCommand(self, ctx: SmartHomeParser.SetCommandContext):

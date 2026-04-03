@@ -78,7 +78,7 @@ RBRACE: '}' ;
 LBRACKET: '[' ;
 RBRACKET: ']' ;
 ASSIGN: '=' ;
-COMPARE: '>' | '>=' | '<' | '<=' ;
+COMPARE: '>' | '>=' | '<' | '<=' | '==' | '!=' ;
 DOT: '.' ;
 SEMI: ';' ;
 COMMA: ',' ;
