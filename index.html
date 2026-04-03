@@ -108,10 +108,14 @@ async function runCode() {
 function formatDevices(devices) {
   return Object.entries(devices)
     .map(([name, props]) => {
-      const p = Object.entries(props).map(([k, v]) => `${k}: ${v}`).join(', ');
-      return `${name}: { ${p} }`;
+      const p = Object.entries(props).map(([k, v]) => {
+          const s = Object.entries(v).map(([ik, iv]) => `${ik}=${iv}`).join(', ');
+          return `\n  ${k}: ${s}`;
+      })
+      .join(' ');
+      return `${name}:\n{${p}\n}`;
     })
-    .join('\n');
+    .join('\n\n');
 }
 </script>
 </body>

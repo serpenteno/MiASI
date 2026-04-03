@@ -34,12 +34,13 @@ roomList
     ;
 
 condition
-    : device DOT property IS STATE # stateCondition
-    | device DOT property COMPARE NUMBER # compareCondition
+    : (READ)? device DOT property IS STATE # stateCondition
+    | (READ)? device DOT property COMPARE NUMBER # compareCondition
     ;
 
 command
     : SET device DOT property ASSIGN value SEMI # setCommand
+    | READ device DOT property SEMI # readCommand
     | TURN onOff device DOT LIGHT SEMI # lightCommand
     | IGNORE device DOT property SEMI # ignoreCommand
     | UNIGNORE device DOT property SEMI # unignoreCommand
@@ -59,6 +60,7 @@ FOR: 'for' ;
 IN: 'in' ;
 IS: 'is' ;
 SET: 'set' ;
+READ: 'read' ;
 TURN: 'turn' ;
 IGNORE: 'ignore' ;
 UNIGNORE: 'unignore' ;
