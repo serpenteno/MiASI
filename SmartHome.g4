@@ -54,7 +54,7 @@ onOff: ON | OFF ;
 
 IF: 'if' ;
 ELSE: 'else' ;
-WHEN : 'when' ;
+WHEN: 'when' ;
 FOR: 'for' ;
 IN: 'in' ;
 IS: 'is' ;
