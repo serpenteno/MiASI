@@ -172,4 +172,8 @@ class InterpreterVisitor(SmartHomeVisitor):
         self.log.append(f"unignore {key}")
 
     def _resolve(self, name: str):
-        return self.variables.get(name, name)
+        if name in self.variables:
+            return self.variables[name]
+        if name not in self.devices:
+            raise ValueError(f"Unknown device {name}")
+        return name
