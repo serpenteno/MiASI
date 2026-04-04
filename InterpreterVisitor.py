@@ -103,6 +103,43 @@ class InterpreterVisitor(SmartHomeVisitor):
                 for statement in rule.statement():
                     self.visit(statement)
 
+    def visitSetRelativeCommand(self, ctx: SmartHomeParser.SetRelativeCommandContext):
+        device = self._resolve(ctx.device().getText())
+        prop = ctx.property_().getText()
+        key = f"{device}.{prop}"
+
+        if key in self.ignored:
+            self.log.append(f"{key} skipped (ignore active)")
+            return
+
+        number = float(ctx.NUMBER().getText())
+        op = ctx.COMPUND_ASSIGN().getText()
+
+        value_source = "set"
+        if ctx.READ() is not None:
+            value_source = "read"
+
+        current = self.devices.get(device, {}).get(prop, {}).get(value_source)
+
+        ops = {
+            '+=': current + number,
+            '-=': current - number,
+            '*=': current * number,
+            '/=': current / number if number != 0 else current,
+        }
+
+        val = ops[op]
+        val = int(val) if val == int(val) else val
+
+        self.devices[device][prop]["set"] = val
+        self.log.append(f"{device}.{prop} {op} {number} -> {val}")
+
+        for rule in self.pending_rules[:]:
+            if self.visit(rule.condition()):
+                self.pending_rules.remove(rule)
+                for statement in rule.statement():
+                    self.visit(statement)
+
     def visitReadCommand(self, ctx: SmartHomeParser.ReadCommandContext):
         device = self._resolve(ctx.device().getText())
         prop = ctx.property_().getText()

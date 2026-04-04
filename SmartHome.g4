@@ -40,6 +40,7 @@ condition
 
 command
     : SET device DOT property ASSIGN value SEMI # setCommand
+    | SET (READ)? device DOT property COMPUND_ASSIGN NUMBER SEMI # setRelativeCommand
     | READ device DOT property SEMI # readCommand
     | TURN onOff device DOT LIGHT SEMI # lightCommand
     | IGNORE device DOT property SEMI # ignoreCommand
@@ -80,6 +81,7 @@ RBRACE: '}' ;
 LBRACKET: '[' ;
 RBRACKET: ']' ;
 ASSIGN: '=' ;
+COMPUND_ASSIGN: '+=' | '-=' | '*=' | '/=' ;
 COMPARE: '>' | '>=' | '<' | '<=' | '==' | '!=' ;
 DOT: '.' ;
 SEMI: ';' ;
