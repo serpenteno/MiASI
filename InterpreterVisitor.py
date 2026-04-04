@@ -51,11 +51,9 @@ class InterpreterVisitor(SmartHomeVisitor):
         prop = ctx.property_().getText()
         expected = ctx.STATE().getText()
 
-        value_source = "set"
-        if ctx.READ() is not None:
-            value_source = "read"
+        value_source = "read" if ctx.READ() else "set"
 
-        actual = self.devices.get(device, {}).get(prop, {}).get(value_source)
+        actual = self._get_prop(device, prop)[value_source]
         return actual == expected
 
     def visitCompareCondition(self, ctx: SmartHomeParser.CompareConditionContext):
@@ -64,14 +62,17 @@ class InterpreterVisitor(SmartHomeVisitor):
         op = ctx.COMPARE().getText()
         number = float(ctx.NUMBER().getText())
 
-        value_source = "set"
-        if ctx.READ() is not None:
-            value_source = "read"
+        value_source = "read" if ctx.READ() else "set"
 
-        actual = self.devices.get(device, {}).get(prop, 0).get(value_source)
-        ops = {'>': actual > number, '>=': actual >= number,
-               '<': actual < number, '<=': actual <= number,
-               '==': actual == number, '!=': actual != number}
+        actual = self._get_prop(device, prop)[value_source]
+        ops = {
+            '>': actual > number,
+            '>=': actual >= number,
+            '<': actual < number,
+            '<=': actual <= number,
+            '==': actual == number,
+            '!=': actual != number
+        }
         return ops.get(op, False)
 
     def visitSetCommand(self, ctx: SmartHomeParser.SetCommandContext):
@@ -90,18 +91,10 @@ class InterpreterVisitor(SmartHomeVisitor):
         else:
             val = raw.STATE().getText()
 
-        if device not in self.devices:
-            self.devices[device] = {}
-        if prop not in self.devices[device]:
-            self.devices[device][prop] = {"set": None, "read": None}
-        self.devices[device][prop]["set"] = val
+        self._get_prop(device, prop)["set"] = val
         self.log.append(f"{device}.{prop} = {val}")
 
-        for rule in self.pending_rules[:]:
-            if self.visit(rule.condition()):
-                self.pending_rules.remove(rule)
-                for statement in rule.statement():
-                    self.visit(statement)
+        self._check_pending_rules()
 
     def visitSetRelativeCommand(self, ctx: SmartHomeParser.SetRelativeCommandContext):
         device = self._resolve(ctx.device().getText())
@@ -115,45 +108,35 @@ class InterpreterVisitor(SmartHomeVisitor):
         number = float(ctx.NUMBER().getText())
         op = ctx.COMPUND_ASSIGN().getText()
 
-        value_source = "set"
-        if ctx.READ() is not None:
-            value_source = "read"
+        value_source = "read" if ctx.READ() else "set"
 
-        current = self.devices.get(device, {}).get(prop, {}).get(value_source)
+        current = self._get_prop(device, prop)[value_source]
 
         ops = {
             '+=': current + number,
             '-=': current - number,
             '*=': current * number,
-            '/=': current / number if number != 0 else current,
+            '/=': current / number if number != 0 else current
         }
 
         val = ops[op]
         val = int(val) if val == int(val) else val
 
-        self.devices[device][prop]["set"] = val
+        self._get_prop(device, prop)["set"] = val
         self.log.append(f"{device}.{prop} {op} {number} -> {val}")
 
-        for rule in self.pending_rules[:]:
-            if self.visit(rule.condition()):
-                self.pending_rules.remove(rule)
-                for statement in rule.statement():
-                    self.visit(statement)
+        self._check_pending_rules()
 
     def visitReadCommand(self, ctx: SmartHomeParser.ReadCommandContext):
         device = self._resolve(ctx.device().getText())
         prop = ctx.property_().getText()
-        val = self.devices.get(device, {}).get(prop, {}).get("read")
+        val = self._get_prop(device, prop)["read"]
         self.log.append(f"read {device}.{prop} = {val}")
 
     def visitLightCommand(self, ctx: SmartHomeParser.LightCommandContext):
         device = self._resolve(ctx.device().getText())
         state = ctx.onOff().getText()
 
-        if device not in self.devices:
-            self.devices[device] = {}
-        if "light" not in self.devices[device]:
-            self.devices[device]["light"] = {"set": None, "read": None}
         self.devices[device]["light"]["set"] = state
         self.log.append(f"turn {state} {device}.light")
 
@@ -168,7 +151,7 @@ class InterpreterVisitor(SmartHomeVisitor):
         device = self._resolve(ctx.device().getText())
         prop = ctx.property_().getText()
         key = f"{device}.{prop}"
-        self.ignored.remove(key)
+        self.ignored.discard(key)
         self.log.append(f"unignore {key}")
 
     def _resolve(self, name: str):
@@ -177,3 +160,15 @@ class InterpreterVisitor(SmartHomeVisitor):
         if name not in self.devices:
             raise ValueError(f"Unknown device {name}")
         return name
+
+    def _check_pending_rules(self):
+        for rule in self.pending_rules[:]:
+            if self.visit(rule.condition()):
+                self.pending_rules.remove(rule)
+                for statement in rule.statement():
+                    self.visit(statement)
+
+    def _get_prop(self, device: str, prop: str):
+        if prop not in self.devices[device]:
+            raise ValueError(f"Unknown property '{prop}' on device '{device}'")
+        return self.devices[device][prop]
